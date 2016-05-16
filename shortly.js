@@ -22,13 +22,37 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
+var isAuthenticated = function(req, res, next) {
+  // if (req.user.authenticated) {
+  //   return next();
+  // } else {
+  //   res.redirect('/login');
+  // }
+  next();
+};
 
-app.get('/', 
+app.get('/', isAuthenticated,
+function(req, res) {
+  var username = req.body.username;
+  var password = req.body.password;
+
+  if (!username || !password) {
+    res.redirect('/login');
+  } else {
+    res.render('index');
+  }
+  //check if user loggedin
+    //if yes, go to index
+    //else redirect to login
+  
+});
+
+app.get('/create', isAuthenticated,
 function(req, res) {
   res.render('index');
 });
 
-app.get('/create', 
+app.post('/create', isAuthenticated,
 function(req, res) {
   res.render('index');
 });
@@ -76,13 +100,17 @@ function(req, res) {
 // Write your authentication routes here
 /************************************************************/
 
-
+app.get('/login',
+  function (req, res) {
+    res.render('login');
+  }
+);
 
 /************************************************************/
 // Handle the wildcard route last - if all other routes fail
 // assume the route is a short code and try and handle it here.
 // If the short-code doesn't exist, send the user to '/'
-/************************************************************/
+/***********************************************************/
 
 app.get('/*', function(req, res) {
   new Link({ code: req.params[0] }).fetch().then(function(link) {
