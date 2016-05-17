@@ -3,7 +3,8 @@ var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
 var exS = require('express-session');
-
+var Promise = require('bluebird');
+var bcrypt = Promise.promisifyAll(require('bcrypt-nodejs'));
 
 var db = require('./app/config');
 var Users = require('./app/collections/users');
@@ -25,6 +26,7 @@ app.use(express.static(__dirname + '/public'));
 
 // //make expresss-session
 app.use(exS({secret: 'kat needs a cookie', cookie: {maxAge: 1000000000000000000}}));
+
 
 
 
@@ -63,7 +65,7 @@ function(req, res) {
 
 app.post('/links', util.isAuthenticated,
 function(req, res) {
-  console.log('I PRESSED SUMBIT AND IM HERE In /links');
+  // console.log('I PRESSED SUMBIT AND IM HERE In /links');
   var uri = req.body.url;
 
   if (!util.isValidUrl(uri)) {
@@ -112,7 +114,6 @@ app.post('/login', util.verifyLogInInfo,
 );
 
 app.get('/signup', function(req, res) {
-  console.log('Im the signup GET', req.body);
   res.end();
 });
 
@@ -127,16 +128,22 @@ app.post('/signup', function(req, res) {
     .where('username', '=', username)
     .then(function (rows) {
       if (rows.length === 0) { // empty row => no username in db
-        new User({
-          username: username,
-          password: password
-        }).save()
+        // console.log("Before hasing password");
+     
+        util.setpassword(password)
+          .then(function(hashed) {
+            // console.log("show me the hash", hashed);
+            return new User({
+              username: username,
+              password: hashed
+            }).save();
+          })
+          // .save()
           .then(function(UserSaved) {
-            console.log("USER SAVED", UserSaved);
+            // console.log("USER SAVED", UserSaved);
             util.signIn(req, res);
             res.redirect('/');
           });
-        // res.redirect('/login');
       } else { /// username already exists
         console.log("Username already exists", rows);
         
