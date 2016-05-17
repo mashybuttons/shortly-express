@@ -24,26 +24,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
 // //make expresss-session
-app.use(exS({secret: 'kat needs a cookie', cookie: {maxAge: 10000}}));
+app.use(exS({secret: 'kat needs a cookie', cookie: {maxAge: 1000000000000000000}}));
 
-var isAuthenticated = function(req, res, next) {
-  var s = req.session;
-  // console.log(req.session);
-  if (s.cookie.secure) {
-    next();
-  } else {
-    res.redirect('/login');
-  }
 
-  // next();
-};
 
-var generateSession = function (req, res, next) {
-  // exS({secret: 'kat needs a cookie', cookie: {maxAge: 10000}});
-  next();
-};
-
-app.get('/', isAuthenticated,
+app.get('/', util.isAuthenticated,
 function(req, res) {
   // console.log(req.session.id);
   // console.log(req.session.cookie);
@@ -64,29 +49,22 @@ function(req, res) {
   
 });
 
-app.get('/create', isAuthenticated,
+app.get('/create', util.isAuthenticated,
 function(req, res) {
   res.render('index');
 });
 
-app.get('/links', isAuthenticated,
+app.get('/links', util.isAuthenticated,
 function(req, res) {
   Links.reset().fetch().then(function(links) {
     res.status(200).send(links.models);
   });
 });
 
-app.post('/links', isAuthenticated,
+app.post('/links', util.isAuthenticated,
 function(req, res) {
-  console.log("I PRESSED SUMBIT AND IM HERE In /links");
+  console.log('I PRESSED SUMBIT AND IM HERE In /links');
   var uri = req.body.url;
-  // var username = req.body.username;
-  // var password = req.body.password;
-
-  // if (!username || !password) {
-  //   res.redirect('/login');
-  // }
-
 
   if (!util.isValidUrl(uri)) {
     console.log('Not a valid url: ', uri);
@@ -120,28 +98,56 @@ function(req, res) {
 // Write your authentication routes here
 /************************************************************/
 
-app.get('/login', generateSession,
+app.get('/login',
   function (req, res) {
     res.render('login');
   }
 );
 
-app.post('/login',
-  function (req, res) {
-    var s = req.session;
-    s.cookie.secure = true;
-    var username = req.body.username;
-    var password = req.body.password;
 
-    verifyLogInInfo(username, password);
+app.post('/login', util.verifyLogInInfo,
+  function (req, res) {
     res.redirect('/');
   }
 );
 
-var verifyLogInInfo = function (username, password, cb) {
+app.get('/signup', function(req, res) {
+  console.log('Im the signup GET', req.body);
+  res.end();
+});
+
+app.post('/signup', function(req, res) {
+  var username = req.body.username;
+  var password = req.body.password;
+
+  console.log(username);
+
+
   db.knex('users')
     .where('username', '=', username)
-};
+    .then(function (rows) {
+      if (rows.length === 0) { // empty row => no username in db
+        new User({
+          username: username,
+          password: password
+        }).save()
+          .then(function(UserSaved) {
+            console.log("USER SAVED", UserSaved);
+            util.signIn(req, res);
+            res.redirect('/');
+          });
+        // res.redirect('/login');
+      } else { /// username already exists
+        console.log("Username already exists", rows);
+      }
+      // res.end();
+    })
+    .catch(function (err) {
+      console.log("Error", err);
+      res.end();
+    });
+
+});
 
 /************************************************************/
 // Handle the wildcard route last - if all other routes fail
