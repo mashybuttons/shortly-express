@@ -100,7 +100,7 @@ function(req, res) {
 // Write your authentication routes here
 /************************************************************/
 
-app.get('/login',
+app.get('/login', util.isLoggedIn,
   function (req, res) {
     res.render('login');
   }
@@ -114,7 +114,7 @@ app.post('/login', util.verifyLogInInfo,
 );
 
 app.get('/signup', function(req, res) {
-  res.end();
+  res.render('signup');
 });
 
 app.post('/signup', function(req, res) {
@@ -122,7 +122,6 @@ app.post('/signup', function(req, res) {
   var password = req.body.password;
 
   console.log(username);
-
 
   db.knex('users')
     .where('username', '=', username)
@@ -155,6 +154,12 @@ app.post('/signup', function(req, res) {
       res.end();
     });
 
+});
+
+app.get('/logout', function(req, res) {
+  var session = req.session;
+  session.destroy();
+  res.redirect('/');
 });
 
 /************************************************************/
