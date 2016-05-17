@@ -139,6 +139,7 @@ app.post('/signup', function(req, res) {
         // res.redirect('/login');
       } else { /// username already exists
         console.log("Username already exists", rows);
+        
       }
       // res.end();
     })
